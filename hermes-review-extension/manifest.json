@@ -1,0 +1,151 @@
+{
+  "$schema": "./manifest.schema.json",
+  "manifestVersion": 1,
+  "id": "com.raumzeit77.hermes-review",
+  "name": "Quick Review",
+  "version": "1.0.0",
+  "description": "Run an independent review of the latest conversation.",
+  "author": {
+    "name": "Raumzeit77",
+    "url": "https://github.com/raumzeit77"
+  },
+  "homepage": "https://github.com/raumzeit77/msty-go-quick-review",
+  "repository": "https://github.com/raumzeit77/msty-go-quick-review",
+  "supportUrl": "https://github.com/raumzeit77/msty-go-quick-review/issues",
+  "license": "MIT",
+  "keywords": [
+    "review",
+    "critique",
+    "feedback",
+    "chat",
+    "quality"
+  ],
+  "categories": [
+    "productivity",
+    "chat"
+  ],
+  "icon": "static/icon.svg",
+  "compatibility": {
+    "extensionApi": "^1.0.0"
+  },
+  "permissions": [
+    {
+      "id": "commands.provide",
+      "required": true,
+      "reason": "Adds the native /review slash command."
+    },
+    {
+      "id": "context.read",
+      "required": true,
+      "reason": "Identifies the active chat to review."
+    },
+    {
+      "id": "messages.read",
+      "required": true,
+      "reason": "Reads the latest 10 messages as review context."
+    },
+    {
+      "id": "composer.read",
+      "required": true,
+      "reason": "Detects and clears the executed /review command from the composer."
+    },
+    {
+      "id": "composer.write",
+      "required": true,
+      "reason": "Places a user-approved revision prompt in the main composer without sending it."
+    },
+    {
+      "id": "models.infer",
+      "required": true,
+      "reason": "Runs an isolated reviewer inference."
+    },
+    {
+      "id": "storage.chat",
+      "required": true,
+      "reason": "Stores completed reviews in the chat they were produced in, so the chat's review history persists across chat switching."
+    },
+    {
+      "id": "notifications.show",
+      "required": true,
+      "reason": "Shows concise progress and error notifications."
+    },
+    {
+      "id": "ui.popup",
+      "required": true,
+      "reason": "Opens the persistent review pane that lists, sends, and deletes the chat's reviews without adding chat messages."
+    },
+    {
+      "id": "ui.titleBar",
+      "required": true,
+      "reason": "Keeps the always-visible Review launcher in the title bar so the pane is one click or mod+shift+r away in any chat."
+    },
+    {
+      "id": "ui.workspace",
+      "required": false,
+      "reason": "Optionally adds a persistent Review workspace launcher that opens the same review pane; /review still works when unavailable."
+    },
+    {
+      "id": "events.subscribe",
+      "required": true,
+      "reason": "Re-scopes the open pane to the chat that is now open when the user switches chats: the frame re-reads the active chat id on the host's own event stream."
+    }
+  ],
+  "entry": "extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "id": "review",
+        "name": "review",
+        "slashName": "review",
+        "label": "Quick Review",
+        "description": "Review the latest 10 messages and open the review pane.",
+        "argumentHint": "[optional focus or instructions]",
+        "command": "hermes-review.run",
+        "priority": 80
+      },
+      {
+        "id": "hermes_review_diagnose",
+        "slashName": "hermes-review-diagnose",
+        "label": "Show host diagnostics",
+        "description": "Report the live host contract: API compatibility, permissions, surfaces, features, storage quotas, trust level, and reviewer model assignment status.",
+        "command": "hermes-review.diagnose",
+        "priority": 70
+      }
+    ],
+    "popups": [
+      {
+        "id": "hermes-review-pane",
+        "title": "Quick Review",
+        "description": "Independent review history for the active chat.",
+        "icon": "static/icon.svg",
+        "entry": "view.js",
+        "command": "hermes-review.openPane",
+        "size": "medium"
+      }
+    ],
+    "titleBarItems": [
+      {
+        "id": "hermes-review-titlebar",
+        "title": "Quick Review",
+        "label": "Quick Review",
+        "description": "Open or close the review pane.",
+        "icon": "static/icon.svg",
+        "entry": "view.js",
+        "command": "hermes-review.openPane",
+        "when": "chat.hasMessages",
+        "shortcut": "mod+shift+r",
+        "shortcutHint": "mod+shift+r",
+        "size": "small",
+        "priority": 44
+      }
+    ],
+    "modelAssignments": [
+      {
+        "id": "reviewer",
+        "label": "Review model",
+        "description": "Optional independent model for /review. If unset, Quick Review uses the main model.",
+        "required": false
+      }
+    ]
+  }
+}

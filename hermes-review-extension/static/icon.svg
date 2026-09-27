@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-labelledby="title desc">
+  <title id="title">Hermes Review</title>
+  <desc id="desc">A magnifying glass inspecting a check mark</desc>
+  <defs>
+    <linearGradient id="bg" x1="24" y1="16" x2="232" y2="240" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#6757E8"/>
+      <stop offset="1" stop-color="#2C1E74"/>
+    </linearGradient>
+  </defs>
+  <rect x="12" y="12" width="232" height="232" rx="54" fill="url(#bg)"/>
+  <circle cx="111" cy="105" r="55" fill="none" stroke="#FFFFFF" stroke-width="18"/>
+  <path d="M151 145l55 55" fill="none" stroke="#FFFFFF" stroke-width="20" stroke-linecap="round"/>
+  <path d="M79 106l22 23 43-51" fill="none" stroke="#B9FFDA" stroke-width="17" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

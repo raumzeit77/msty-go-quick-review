@@ -1,0 +1,748 @@
+/* Persistent review pane styles.
+ *
+ * Host theme tokens only, aliased into a local --rv-* namespace exactly like
+ * the official Side Chat view.css aliases --sc-*: no component rule touches a
+ * host variable directly, and no component rule carries a literal colour —
+ * those belong to the host. Glyphs come from the shared icon sprite
+ * (#msty-icon-*).
+ *
+ * Host-native look (t_c025821b). The pane now follows the idiom the host's own
+ * installed extensions use: the host's own shipped sheets carry no literal
+ * colour of their own. Concretely:
+ *
+ *  - the one filled action paints the host's primary control: fill
+ *    `--rv-action` (--primary), label `--rv-action-label` (--primary-foreground,
+ *    derived host-style when the frame does not answer it), border derived from
+ *    the fill with color-mix(in oklab, …), hover fill mixed toward the
+ *    background 9%, exactly like `.sc-primary`;
+ *  - interaction states the pane lacked: hover, :focus-visible (ring),
+ *    :disabled, plus short transitions on the reference's --dur/--ease idea,
+ *    own tokens (--rv-dur 160ms, --rv-ease cubic-bezier(.22,1,.36,1));
+ *  - shades are derived, never authored: color-mix(in oklab, …) over the
+ *    alias palette.
+ *
+ * Fallback policy (t_c025821b, supersedes t_0025dae6/t_5bffad26 literal policy).
+ * Every colour alias is a fallback chain over host tokens whose LAST link is
+ * an OBSERVED HOST VALUE for that scheme — the values the pane's own published
+ * frame theme report carried on 2026-09-22, recorded with their provenance in
+ * `tests/fixtures/host-tokens.json`. A chain that ends in another bare var()
+ * resolves to the *invalid* value at computed-value time when the host provides
+ * none of the chain's tokens, and an invalid declaration is dropped — which is
+ * how a filled control once rendered as a weak transparent pill. A token this
+ * host has never reported is never guessed: it is linked through an observed
+ * token, or derived with color-mix over aliases that already have an observed
+ * terminal. Exactly one file owns those literals (this one), in the two
+ * :root-scoped blocks below, and the pane suite / fidelity suite both assert it.
+ *
+ * The host may hand the frame nothing at all, so the pane resolves the scheme
+ * itself from the host's `colorScheme` and stamps `data-rv-scheme` on its root
+ * (view.js). The light palette is also the un-stamped default; the dark palette
+ * under `:root[data-rv-scheme="dark"]` guarantees light ink on a dark surface
+ * even when not a single token arrives.
+ *
+ * The same table is declared in review-pane.js (PANE_THEME_ALIASES) and the
+ * pane suite asserts all three blocks agree with it byte for byte.
+ */
+
+:root,
+:root[data-rv-scheme="light"] {
+  /* typography, geometry and motion (non-colour aliases) */
+  --rv-font: var(--font-sans, "Inter", ui-sans-serif, system-ui, -apple-system, sans-serif);
+  --rv-mono: var(--font-mono, ui-monospace, SFMono-Regular, Menlo, monospace);
+  --rv-radius: var(--radius, 14px);
+  --rv-radius-sm: max(6px, calc(var(--rv-radius) - 3px));
+  --rv-dur: 160ms;
+  --rv-ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --rv-action-shadow: var(--button-shadow, 0 1px 2px oklch(0 0 0 / 0.08), 0 5px 18px color-mix(in oklch, var(--rv-action) 9%, transparent));
+  /* light palette — the observed host values of 2026-09-22 */
+  --rv-bg: var(--background, oklch(0.975 0.008 255));
+  --rv-fg: var(--foreground, oklch(0.23 0.032 264));
+  --rv-muted-fg: var(--muted-foreground, var(--foreground, oklch(0.47 0.03 260)));
+  --rv-border: var(--border, oklch(0.86 0.022 255 / 0.74));
+  --rv-surface: var(--card, oklch(0.995 0.003 255 / 0.82));
+  --rv-raised: var(--input, var(--secondary, var(--muted, oklch(0.91 0.018 255 / 0.90))));
+  --rv-ring: var(--ring, oklch(0.58 0.22 35));
+  --rv-danger: var(--extension-danger, oklch(0.58 0.21 25));
+  --rv-warning: var(--extension-warning, oklch(0.65 0.16 78));
+  --rv-info: var(--extension-info, oklch(0.57 0.16 242));
+  --rv-success: var(--extension-success, oklch(0.56 0.16 157));
+  --rv-action: var(--primary, oklch(0.58 0.22 35));
+  --rv-action-label: var(--primary-foreground, oklch(0.99 0 0));
+}
+
+:root[data-rv-scheme="dark"] {
+  /* last-resort dark palette: the host's own dark values where they are known,
+   * and a derivation over those aliases where one is not — this sheet never
+   * authors a dark colour of its own. */
+  --rv-bg: var(--background, oklch(0.145 0.028 264));
+  --rv-fg: var(--foreground, oklch(0.95 0.009 250));
+  --rv-muted-fg: var(--muted-foreground, var(--foreground, oklch(0.72 0.025 255)));
+  --rv-border: var(--border, oklch(0.31 0.035 262 / 0.72));
+  --rv-surface: var(--card, oklch(0.195 0.032 262 / 0.82));
+  --rv-raised: var(--input, var(--secondary, var(--muted, color-mix(in oklab, var(--rv-bg), var(--rv-fg) 5%))));
+  --rv-ring: var(--ring, color-mix(in oklab, var(--rv-action), var(--rv-bg) 35%));
+  --rv-danger: var(--extension-danger, var(--rv-fg));
+  --rv-warning: var(--extension-warning, var(--rv-fg));
+  --rv-info: var(--extension-info, var(--rv-fg));
+  --rv-success: var(--extension-success, var(--rv-fg));
+  --rv-action: var(--primary, oklch(0.74 0.18 47));
+  --rv-action-label: var(--primary-foreground, color-mix(in oklab, var(--rv-action), var(--rv-bg) 92%));
+}
+
+/* ---------- frame base ----------
+ * The host owns the frame's document, and its base styles win over bare elements
+ * until this sheet says otherwise. Every shipped sheet opens with the same
+ * normalisation (`*`, html/body, h1/h2/p, button/input; or `*`, body, textarea,
+ * button); without
+ * it a sheet that DOES load still leaves the field and the action reading as the
+ * host's default form controls. Every value below travels through an --rv-* alias,
+ * so no colour is authored here and a host that answers nothing still paints the
+ * pane from the alias terminals (t_6c564822).
+ */
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: transparent;
+  color: var(--rv-fg);
+  font-family: var(--rv-font);
+  font-size: 14px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+p { margin: 0; }
+
+button,
+input,
+textarea {
+  font: inherit;
+  color: inherit;
+}
+
+.rv-root {
+  color: var(--rv-fg);
+  font-family: var(--rv-font);
+  min-height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.rv-sheet {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+/* ---------- header ---------- */
+/* The host popup chrome owns icon + title + window controls; this in-view row
+ * exists only for the chat-state hint (D4, D1 — t_061370a7). view.js hides it
+ * entirely (display:none) while a chat is active, so no empty visual row. */
+.rv-header {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  padding: 8px 13px;
+  border-bottom: 1px solid var(--rv-border);
+}
+
+.rv-header-hint {
+  font-size: 11px;
+  color: var(--rv-muted-fg);
+}
+
+/* ---------- body ---------- */
+/* The dummy's `.body`: 16px padding, 10px gap between the stacked regions. */
+.rv-body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  padding: 16px;
+  gap: 10px;
+}
+
+/* The empty state is a heading plus ONE hint sentence and nothing else
+ * (t_0025dae6): no starter/placeholder rows. Geometry from the dummy's
+ * `.empty` / `.empty h3` / `.empty p`. */
+.rv-empty {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 9px;
+  padding: 14px 6px;
+}
+
+.rv-empty-heading {
+  text-align: center;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.rv-empty-note {
+  text-align: center;
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--rv-muted-fg);
+  max-width: 246px;
+  margin: 0 auto;
+}
+
+.rv-count {
+  padding: 0 0 2px 1px;
+  font-size: 11.5px;
+  color: var(--rv-muted-fg);
+}
+
+/* ---------- running / failure states ---------- */
+/* The dummy's `.prog` (state 2): a raised, bordered panel with a bold title and
+ * a muted focus sub-line — a card, not a borderless row (t_6c564822). */
+.rv-running {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 11px 12px;
+  border: 1px solid var(--rv-border);
+  border-radius: var(--rv-radius);
+  background: var(--rv-raised);
+  font-size: 12.5px;
+  color: var(--rv-fg);
+}
+
+/* The waiting state's spinner (t_4a9ba0ca): a ring drawn in the pane's own
+ * tones — the track is the border alias, the head the host's accent — that
+ * rotates while a review runs. It replaces the static refresh glyph the state
+ * carried, in the SAME 13px box `flex: none` reserved, so the mark appearing or
+ * going cannot move the panel's layout; the box sits inside the title's own
+ * 1.5 × 12.5px line box. The mark is motion, never meaning: it carries no copy,
+ * is hidden from assistive tech, and holds still — still visible — under
+ * `prefers-reduced-motion: reduce`, because an animation that ignores that
+ * preference is a defect, not a flourish. No colour is authored here. */
+.rv-running .rv-spinner {
+  width: 13px;
+  height: 13px;
+  flex: none;
+  margin-top: 2px;
+  border-radius: 50%;
+  border: 2px solid var(--rv-border);
+  border-top-color: var(--rv-action);
+  animation: rv-spin 900ms linear infinite;
+}
+
+@keyframes rv-spin {
+  to { transform: rotate(360deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rv-running .rv-spinner { animation: none; }
+}
+
+.rv-running-title {
+  font-size: 12.5px;
+  font-weight: 600;
+}
+
+/* The focus line is a muted sub-line under the title, ellipsised when long —
+ * the same treatment the shipped sheets give their chips and timestamps. */
+.rv-running-instruction {
+  margin-top: 2px;
+  font-size: 11.5px;
+  color: var(--rv-muted-fg);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* The body already insets its children (16px padding), so the callouts carry
+ * no margin of their own. */
+.rv-callout {
+  padding: 10px 12px;
+  border-radius: var(--rv-radius);
+  border: 1px solid var(--rv-border);
+}
+
+.rv-callout--danger {
+  border-color: var(--rv-danger);
+  color: var(--rv-danger);
+}
+
+.rv-callout--success {
+  border-color: var(--rv-success);
+  color: var(--rv-fg);
+}
+
+.rv-callout-title {
+  font-size: 12.5px;
+  font-weight: 600;
+}
+
+/* t_07094a37 item 4: the success callout's explicit dismiss control. The head
+ * row puts the title and the control on one line; the control is a REAL, visible
+ * word-button on the pane's ghost recipe — never an invisible click-anywhere
+ * affordance — and it carries its accessible name from the copy table. */
+.rv-callout-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.rv-callout-dismiss {
+  padding: 3px 9px;
+  font-size: 11.5px;
+  flex: none;
+}
+
+.rv-callout-body {
+  font-size: 12px;
+  margin-top: 3px;
+}
+
+/* D3 (t_061370a7): prose callout bodies render in the host sans; only the
+ * failure callout's bare `diagnostic-stage=` token stays monospace. */
+.rv-callout-body--token {
+  font-family: var(--rv-mono);
+}
+
+/* t_fa7ab623: bounded reason line under the failure token. Prose, muted, and
+ * never the primary reading surface — the token above stays load-bearing. */
+.rv-callout-detail {
+  font-size: 11.5px;
+  margin-top: 4px;
+  color: var(--rv-muted-fg);
+  overflow-wrap: anywhere;
+}
+
+/* ---------- review rows ---------- */
+/* Each finished review is its OWN bordered card, laid out as siblings with a
+ * real gap (t_0025dae6): a shared border with no gap reads as one block. The
+ * gap lives on the list; the cards themselves carry the surface, border and
+ * radius. */
+.rv-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 0;
+}
+
+.rv-row {
+  border: 1px solid var(--rv-border);
+  border-radius: var(--rv-radius);
+  background: var(--rv-surface);
+  overflow: hidden;
+}
+
+/* The collapsed row is a full-width control: it gets the interaction states
+ * the reference pane has and this one lacked (t_c025821b) — a hover tint
+ * derived from the surface, a real focus ring, and the shared short
+ * transition. */
+.rv-row-head {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  border: 0;
+  background: transparent;
+  color: var(--rv-fg);
+  font-family: inherit;
+  cursor: pointer;
+  text-align: left;
+  transition: background-color var(--rv-dur) var(--rv-ease), color var(--rv-dur) var(--rv-ease);
+}
+
+.rv-row-head:hover {
+  background: color-mix(in oklab, var(--rv-surface), var(--rv-fg) 6%);
+}
+
+.rv-row-head:focus-visible {
+  outline: 2px solid var(--rv-ring);
+  outline-offset: -2px;
+}
+
+.rv-row-head .rv-icon { width: 11px; height: 11px; flex: none; }
+.rv-chev--closed { transform: rotate(-90deg); }
+.rv-chev--open { transform: none; }
+
+.rv-row-title {
+  flex: 1;
+  font-size: 12.5px;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* The row's META line: the "edited" marker, when there is one, and the
+ * timestamp. It is its own flex row so the EXPANDED state can lift the whole
+ * line under a wrapping title instead of crowding it (t_07094a37, item 1). */
+.rv-row-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: none;
+}
+
+/* An EXPANDED row shows its title IN FULL (t_07094a37, item 1) — and, since
+ * t_9622dfc8 (item A), it does so ADAPTIVELY. The user's first screenshot showed
+ * an expanded row still clipped to `Conceptual comparison of Latour and ...`,
+ * and after the first fix the SECOND screenshot showed a short-titled expanded
+ * row with its timestamp on a band of its own and the rest of the first line
+ * empty. The cause was the meta line's flex-basis: `flex: 1 1 100%` made its
+ * BASE SIZE the whole row width, so it could never share a line with the title,
+ * however short that title was. The fix is content-based sizing, not the full
+ * row:
+ *   - the head already wraps, so the wrap decision is now made from the real
+ *     sizes of its children;
+ *   - the title sizes against its OWN width (`flex-basis: auto`, `min-width: 0`,
+ *     wrapping text) instead of a zero base that always consumed the free space;
+ *   - the meta line sizes to its CONTENT (`flex: 0 1 auto`) and pushes itself
+ *     hard right (`margin-left: auto`), so it needs no full-row basis to sit at
+ *     the right edge.
+ * Then a short title keeps chevron · title · timestamp on ONE line with the
+ * timestamp hard right, and only a title long enough to need the width pushes
+ * the meta onto a line of its own (today's draw, still right-aligned). The
+ * COLLAPSED row keeps the single-line ellipsis above. `aria-expanded` is a real
+ * attribute, so the draw and the accessibility tree tell the same story. */
+.rv-row-head[aria-expanded="true"] {
+  flex-wrap: wrap;
+  align-items: flex-start;
+}
+
+.rv-row-head[aria-expanded="true"] .rv-row-title {
+  flex: 1 1 auto;
+  white-space: normal;
+  overflow: visible;
+  text-overflow: clip;
+  min-width: 0;
+}
+
+.rv-row-head[aria-expanded="true"] .rv-row-meta {
+  flex: 0 1 auto;
+  margin-left: auto;
+}
+
+.rv-row-time {
+  font-size: 11px;
+  color: var(--rv-muted-fg);
+  white-space: nowrap;
+}
+
+.rv-row-detail {
+  padding: 0 12px 12px;
+  border-top: 1px solid var(--rv-border);
+}
+
+.rv-summary {
+  font-size: 12.5px;
+  line-height: 1.55;
+  margin: 11px 0 12px;
+}
+
+/* The dummy's `.issue` (state 3): a stacked block whose items are separated by a
+ * dashed rule with a 4px internal rhythm; the severity is carried by the
+ * OUTLINED chip, not by a coloured bar down the side (t_6c564822). */
+.rv-issue {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 9px 0;
+  border-top: 1px dashed var(--rv-border);
+}
+
+.rv-chip {
+  align-self: flex-start;
+  padding: 2px 7px;
+  border: 1px solid currentColor;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  /* A long severity label ellipsises instead of widening the card — the
+   * shipped sheets' treatment for chips and timestamps. */
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.rv-chip[data-sev="High"] { color: var(--rv-danger); }
+.rv-chip[data-sev="Medium"] { color: var(--rv-warning); }
+.rv-chip[data-sev="Low"] { color: var(--rv-info); }
+
+.rv-issue-title {
+  font-size: 12.5px;
+  font-weight: 600;
+}
+
+.rv-issue-line {
+  font-size: 12.5px;
+  line-height: 1.5;
+  margin: 0;
+}
+
+.rv-issue-line b {
+  color: var(--rv-muted-fg);
+  font-weight: 600;
+}
+
+/* The dummy's `.acts` (state 3): the row actions sit under a full rule, 11px
+ * below the last issue, with the constructive action first and the destructive
+ * one last. */
+.rv-row-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding-top: 11px;
+  border-top: 1px solid var(--rv-border);
+  margin-top: 2px;
+}
+
+/* ---------- buttons ---------- */
+.rv-btn {
+  padding: 6px 11px;
+  border-radius: var(--rv-radius-sm);
+  font-size: 12px;
+  font-family: inherit;
+  cursor: pointer;
+  border: 1px solid var(--rv-border);
+  background: var(--rv-raised);
+  color: var(--rv-fg);
+  transition: background-color var(--rv-dur) var(--rv-ease), border-color var(--rv-dur) var(--rv-ease),
+    color var(--rv-dur) var(--rv-ease), opacity var(--rv-dur) var(--rv-ease);
+}
+
+.rv-btn:hover:not(:disabled) {
+  background: color-mix(in oklab, var(--rv-raised), var(--rv-fg) 7%);
+  border-color: color-mix(in oklab, var(--rv-border), var(--rv-fg) 18%);
+}
+
+.rv-btn:focus-visible {
+  outline: 2px solid var(--rv-ring);
+  outline-offset: 2px;
+}
+
+/* The host's own disabled treatment: half opacity, not-allowed cursor. */
+.rv-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* The pane's ONE primary action (t_0025dae6): the footer's `Review` button.
+ * Host-native since t_c025821b: it paints the host's own primary control —
+ * fill `--rv-action` (--primary), label `--rv-action-label`
+ * (--primary-foreground), border derived from the fill the way Side Chat
+ * derives `.sc-primary`'s, hover mixed 9% toward the background, and the
+ * host's own lift `--rv-action-shadow` (--button-shadow), because the host
+ * paints its primary control with a shadow. The retired "inverted ink" pair was chosen when `--primary` was
+ * believed to be a near-background grey; the frame's own report shows it is
+ * the host's orange accent. */
+.rv-btn--primary {
+  background: var(--rv-action);
+  color: var(--rv-action-label);
+  border-color: color-mix(in oklab, var(--rv-action), var(--rv-fg) 8%);
+  font-size: 13px;
+  font-weight: 600;
+  min-width: 112px;
+  padding: 9px 20px;
+  border-radius: var(--rv-radius-sm);
+  box-shadow: var(--rv-action-shadow);
+}
+
+.rv-btn--primary:hover:not(:disabled) {
+  background: color-mix(in oklab, var(--rv-action), var(--rv-bg) 9%);
+}
+
+.rv-btn--ghost-danger {
+  color: var(--rv-danger);
+  background: transparent;
+  border-color: transparent;
+}
+
+.rv-btn--ghost-danger:hover:not(:disabled) {
+  background: color-mix(in oklab, var(--rv-danger), var(--rv-bg) 88%);
+}
+
+/* The edit state's neutral secondary action (`Cancel`, design §9 state 5):
+ * transparent fill, muted ink — the dummy's `.btn.ghost` recipe. */
+.rv-btn--ghost {
+  border-color: transparent;
+  background: transparent;
+  color: var(--rv-muted-fg);
+}
+
+.rv-btn--ghost:hover:not(:disabled) {
+  background: color-mix(in oklab, var(--rv-raised), var(--rv-fg) 7%);
+  border-color: transparent;
+}
+
+/* ---------- editing a review's text ----------
+ * The approved design (the design reference, state 5, pinned by
+ * PS12) built for real in t_db84b23e: the item's header preserved, the constant
+ * framing sentence DRAWN above the field, the review BODY alone inside the
+ * field, and the item's own action row carrying Cancel then Save. After a save
+ * the row is read-only again, its expanded body is the stored text verbatim
+ * (`.rv-stored`), and its collapsed header carries the `.rv-edited` marker.
+ * Every value travels through an --rv-* alias: no colour is authored here. */
+
+/* The "edited" marker (variant A, the user's choice): the shared sprite's pen
+ * glyph plus the word, in the muted ink, on the meta line beside the
+ * timestamp. `flex: none` + `nowrap` keep it from squeezing the row's title. */
+.rv-edited {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  flex: none;
+  font-size: 10.5px;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  color: var(--rv-muted-fg);
+  white-space: nowrap;
+}
+
+.rv-edited .rv-icon { width: 11px; height: 11px; opacity: 0.85; }
+
+/* The framing sentence the revision prompt always opens with: static, muted,
+ * never editable — the user must see what will be sent above their text. */
+.rv-framing {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 11px 0 9px;
+}
+
+.rv-framing-label {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--rv-muted-fg);
+}
+
+.rv-framing-text {
+  font-size: 11.5px;
+  line-height: 1.5;
+  color: var(--rv-muted-fg);
+}
+
+/* The editable field — the review body only, on the pane's own raised-field
+ * recipe (same surface, radius and focus halo as the footer's `.rv-field`). */
+.rv-editbody {
+  display: block;
+  width: 100%;
+  min-height: 150px;
+  resize: vertical;
+  padding: 9px 10px;
+  border: 1px solid var(--rv-border);
+  border-radius: var(--rv-radius);
+  background: var(--rv-raised);
+  color: var(--rv-fg);
+  font-family: inherit;
+  font-size: 12.5px;
+  line-height: 1.55;
+  /* The host webview's default scrollbar is a near-colourless platform thumb on
+   * a light track that ignores the theme (t_4a9ba0ca). The field paints its
+   * own: track on the raised-surface alias, thumb in the muted ink — the pair
+   * clears 3:1 in both schemes (WCAG 2.2 SC 1.4.11 for UI components; computed
+   * by tests/hermes-review-token-vocabulary-contract.mjs VS9). These two
+   * declarations are the standard `scrollbar-*` path; the ::-webkit-* rules
+   * below size and inset the thumb for the host's webview. No colour is
+   * authored here. */
+  scrollbar-width: thin;
+  scrollbar-color: var(--rv-muted-fg) var(--rv-raised);
+  transition: border-color var(--rv-dur) var(--rv-ease), box-shadow var(--rv-dur) var(--rv-ease);
+}
+
+.rv-editbody:focus {
+  outline: none;
+  border-color: color-mix(in oklab, var(--rv-ring), var(--rv-border) 35%);
+  box-shadow: 0 0 0 2px color-mix(in oklab, var(--rv-ring), var(--rv-bg) 78%);
+}
+
+/* The webview half of the field's scrollbar (t_4a9ba0ca). The gutter is a
+ * deliberate 10px — the default thin platform scrollbar reads as an artefact —
+ * and the 2px transparent border inset with `background-clip: padding-box`
+ * leaves a 6px pill inside it, so the thumb reads as part of the field it
+ * belongs to. The track and corner carry the raised-surface alias; the thumb
+ * carries the muted ink, deepening to the body ink on hover. Painted in the
+ * pane's own aliases only. */
+.rv-editbody::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+.rv-editbody::-webkit-scrollbar-track {
+  background: var(--rv-raised);
+  border-radius: var(--rv-radius-sm);
+}
+
+.rv-editbody::-webkit-scrollbar-thumb {
+  background: var(--rv-muted-fg);
+  border: 2px solid transparent;
+  background-clip: padding-box;
+  border-radius: 999px;
+}
+
+.rv-editbody::-webkit-scrollbar-thumb:hover {
+  background: var(--rv-fg);
+}
+
+.rv-editbody::-webkit-scrollbar-corner {
+  background: var(--rv-raised);
+}
+
+/* The saved, edited body: the exact text that "Send to composer" sends, line
+ * breaks intact. It is never re-parsed into the issue rows. */
+.rv-stored {
+  white-space: pre-wrap;
+  font-size: 12.5px;
+  line-height: 1.55;
+  margin: 11px 0 0;
+}
+
+/* ---------- footer ---------- */
+/* The dummy's `.ft`: 11px/12px padding, 8px between the field and the action
+ * row. */
+.rv-footer {
+  border-top: 1px solid var(--rv-border);
+  padding: 11px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.rv-field {
+  width: 100%;
+  min-height: 34px;
+  resize: none;
+  padding: 9px 11px;
+  border: 1px solid var(--rv-border);
+  border-radius: var(--rv-radius);
+  background: var(--rv-raised);
+  color: var(--rv-fg);
+  font-size: 12.5px;
+  font-family: inherit;
+  transition: border-color var(--rv-dur) var(--rv-ease), box-shadow var(--rv-dur) var(--rv-ease);
+}
+
+.rv-field::placeholder { color: var(--rv-muted-fg); }
+
+/* The reference pane's field focus, with the ring's translucent halo expressed
+ * as a mix toward the background so it resolves without a compositing step:
+ * border tinted toward the ring, plus a 2px ring halo. */
+.rv-field:focus {
+  outline: none;
+  border-color: color-mix(in oklab, var(--rv-ring), var(--rv-border) 35%);
+  box-shadow: 0 0 0 2px color-mix(in oklab, var(--rv-ring), var(--rv-bg) 78%);
+}
+
+/* The instruction field and the single Review action. No status line lives
+ * here: the running/failed phases render in the body, and no pane copy names
+ * a model (t_0025dae6). */
+.rv-footer-meta {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+}

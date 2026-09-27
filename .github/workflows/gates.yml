@@ -1,0 +1,45 @@
+name: gates
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  gates:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Syntax gate (every runtime file)
+        run: |
+          for f in hermes-review-extension/*.js; do
+            node --check "$f" || exit 1
+          done
+
+      - name: Contract suites
+        run: |
+          fail=0
+          for t in tests/*-contract.mjs; do
+            echo "::group::$t"
+            node "$t" || fail=1
+            echo "::endgroup::"
+          done
+          exit $fail
+
+      - name: Packaging gate (every ZIP member against its named source)
+        run: |
+          for zip in releases/*.zip; do
+            python3 scripts/package-extension.py verify "$zip" || exit 1
+          done
+
+      - name: Host pre-flight (manifest schema, permissions, ZIP structure)
+        run: |
+          for zip in releases/*.zip; do
+            python3 scripts/perm-preflight.py hermes-review-extension "$zip" || exit 1
+          done
