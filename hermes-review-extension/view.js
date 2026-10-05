@@ -980,20 +980,24 @@ export function mount(mountArgs) {
    */
   async function saveEdit(rowId) {
     const body = state.draftBody;
-    state.editingId = null;
-    state.draftBody = "";
+    const chatId = state.chatId;
     try {
-      const result = await updateReviewBody(msty, rowId, body, state.chatId);
-      if (result.persisted === false && result.unavailable !== true) {
+      const result = await updateReviewBody(msty, rowId, body, chatId);
+      if (!result.persisted) {
         await reportPersistenceFailure(msty);
+        return;
       }
     } catch {
       try {
         await reportPersistenceFailure(msty);
       } catch {
-        // the in-memory list still shows the review for this session
+        // Keep the draft even when the notification cannot be shown.
       }
+      return;
     }
+    if (state.chatId !== chatId || state.editingId !== rowId || state.draftBody !== body) return;
+    state.editingId = null;
+    state.draftBody = "";
     await refresh();
   }
 

@@ -523,4 +523,20 @@ await gate("ER8", async () => {
   assert.equal(JSON.stringify(docs.get(CHAT)[STORAGE_KEY]), before, "the stored document is byte-identical after the render");
 });
 
+await gate("ER9", async () => {
+  for (const label of ["Location", "Problem", "Correction"]) {
+    const body = `1. High: Incorrect total\n${label}: First detail\n${label}: Second detail`;
+    const parsed = parseRevisionBody(body);
+    const rendered = revisionSegmentsText(parsed.segments);
+    assert.ok(rendered.includes(`${label}: First detail`), "repeated labels must not overwrite the first detail");
+    assert.ok(rendered.includes(`${label}: Second detail`), "the repeated detail remains visible");
+
+    const entry = { ...ENTRY_TWO, editedBody: body };
+    const docs = new Map([[CHAT, { [STORAGE_KEY]: { schemaVersion: 1, chatId: CHAT, entries: [entry] } }]]);
+    const { detail } = await mountExpandedRow(docs);
+    assert.ok(textOf(detail).includes("First detail"));
+    assert.ok(textOf(detail).includes("Second detail"));
+  }
+});
+
 console.log(`Hermes Review pane edited render contract checks passed (${gateCount} gates).`);

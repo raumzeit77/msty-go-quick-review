@@ -390,13 +390,20 @@ export function normalizeReview(value) {
   }
 
   const record = asObject(parsed);
-  if (!record) throw new Error("Reviewer returned an invalid structured response.");
+  if (!record || !Array.isArray(record.issues) || !asNonBlankString(record.summary)) {
+    throw new Error("Reviewer returned an invalid structured response.");
+  }
 
-  const rawIssues = Array.isArray(record.issues) ? record.issues : [];
-  const issues = rawIssues.map((item) => {
-    const issue = asObject(item) ?? {};
-    const rawSeverity = firstNonBlankString(issue.severity) ?? "Medium";
-    const severity = rawSeverity === "High" || rawSeverity === "Low" ? rawSeverity : "Medium";
+  const issues = record.issues.map((/** @type {unknown} */ item) => {
+    const issue = asObject(item);
+    if (
+      !issue ||
+      !["High", "Medium", "Low"].includes(issue.severity) ||
+      !["title", "location", "problem", "correction"].every((key) => asNonBlankString(issue[key]))
+    ) {
+      throw new Error("Reviewer returned an invalid structured response.");
+    }
+    const severity = issue.severity;
     return {
       severity,
       title: firstNonBlankString(issue.title) ?? "Review issue",
@@ -607,10 +614,14 @@ export function parseRevisionBody(text) {
       // The detail lines that belong to this issue: contiguous, labelled, and
       // attached to the block that precedes them. A `Location:` with no issue
       // above it never reaches this loop, so it stays prose.
+      const seen = new Set();
       while (at < lines.length) {
         const labelled = REVISION_ISSUE_DETAIL_LINE.exec(lines[at].trim());
         if (!labelled) break;
         const key = labelled[1].toLowerCase();
+        // Leave repeated labels for the prose parser rather than replacing text.
+        if (seen.has(key)) break;
+        seen.add(key);
         if (key === "location") issue.location = labelled[2].trim();
         else if (key === "problem") issue.problem = labelled[2].trim();
         else issue.correction = labelled[2].trim();
