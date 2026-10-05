@@ -435,4 +435,28 @@ await gate("PE6", async () => {
   );
 });
 
+await gate("PE7", async () => {
+  const docs = new Map([[CHAT, { [STORAGE_KEY]: { schemaVersion: 1, chatId: CHAT, entries: [ENTRY] } }]]);
+  const { frame, root } = await mountExpandedRow(docs);
+  click(byText(root, COPY.editAction)[0]);
+  await settle();
+  const draft = "Keep the corrected total and explain the calculation.";
+  const field = byClass(root, "rv-editbody")[0];
+  field.value = draft;
+  for (const handler of field.listeners.get("input") ?? []) handler({ type: "input" });
+
+  const set = frame.msty.storage.chat.set;
+  frame.msty.storage.chat.set = async () => { throw new Error("Storage unavailable"); };
+  click(byText(root, COPY.saveAction)[0]);
+  await settle();
+  assert.equal(byClass(root, "rv-editbody")[0]?.value, draft, "a rejected write keeps the draft open");
+  assert.equal(docs.get(CHAT)[STORAGE_KEY].entries[0].editedBody, null);
+
+  frame.msty.storage.chat.set = set;
+  click(byText(root, COPY.saveAction)[0]);
+  await settle();
+  assert.equal(docs.get(CHAT)[STORAGE_KEY].entries[0].editedBody, draft, "Save can retry without retyping");
+  assert.equal(byClass(root, "rv-editbody").length, 0);
+});
+
 console.log(`Hermes Review pane edit contract checks passed (${gateCount} gates).`);
