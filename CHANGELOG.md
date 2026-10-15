@@ -4,6 +4,29 @@ All notable changes to this extension are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); the package version is the version inside
 `hermes-review-extension/manifest.json`.
 
+## [1.0.1] — 2026-10-15
+
+Three review-reliability fixes, contributed by Ashok Gelal in
+[#1](https://github.com/raumzeit77/msty-go-quick-review/pull/1).
+
+### Fixed
+
+- A malformed reviewer response now **fails the run visibly** (`No review came back.`) instead of
+  being read as "No material issues found". A response that does not match the schema the reviewer
+  is asked for — a missing or blank summary, a missing issues list, an unknown severity, or an issue
+  with a blank title, location, problem or correction — can no longer produce a false clean review.
+- Saving an edited review **keeps your text when the write is rejected**, so Save can be retried
+  without retyping. A save that finishes after you have switched chats or started another edit never
+  clears the newer text.
+- An edited review that repeats a `Location:`, `Problem:` or `Correction:` label now keeps **every**
+  line — the first still carries the card's labelled detail, later ones stay visible instead of
+  overwriting it.
+
+### Added
+
+- Regression suites for all three fixes (the reviewer response contract, and new gates in the pane
+  edit and edited-render contracts).
+
 ## [1.0.0] — 2026-09-27
 
 First public release. `Quick Review` adds an independent second opinion on the conversation you are

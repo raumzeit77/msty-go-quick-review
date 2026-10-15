@@ -3,7 +3,7 @@
   "manifestVersion": 1,
   "id": "com.raumzeit77.hermes-review",
   "name": "Quick Review",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Run an independent review of the latest conversation.",
   "author": {
     "name": "Raumzeit77",

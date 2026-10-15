@@ -8,7 +8,7 @@
 //
 // What is pinned here:
 //   * `scripts/package-extension.py` declares every member WITH its source path, and
-//   * the committed 1.0.0 artifact verifies against those named sources (`PKG1`), and
+//   * the committed 1.0.1 artifact verifies against those named sources (`PKG1`), and
 //   * the gate FAILS on each way the claim could lie: a member taken from the wrong
 //     same-named file (`PKG2`), a member drifted from its source (`PKG3`), a membership
 //     change (`PKG4`), a build path that would resolve by name or clobber a release
@@ -17,7 +17,7 @@
 //     as non-members, no source outside the extension dir (`PKG7`).
 //
 // Boundary: this card adds the structure gate; the artifact it pins is rebuilt on the card that bumps the version. The ZIP's bytes
-// (72,819 B, sha256 3b6382ea…) are unchanged by this suite — it verifies them.
+// (72,718 B, sha256 1011eac8…) are unchanged by this suite — it verifies them.
 import assert from "node:assert/strict";
 import { mkdtemp } from "node:fs/promises";
 import { readFileSync, rmSync, writeFileSync } from "node:fs";
@@ -30,7 +30,7 @@ const TEST_DIR = path.dirname(fileURLToPath(import.meta.url));
 const REPOSITORY_ROOT = path.resolve(TEST_DIR, "..");
 const SCRIPT = path.join(REPOSITORY_ROOT, "scripts", "package-extension.py");
 const SOURCE_DIR = path.join(REPOSITORY_ROOT, "hermes-review-extension");
-const ARTIFACT = path.join(REPOSITORY_ROOT, "releases", "hermes-review-extension-v1.0.0.zip");
+const ARTIFACT = path.join(REPOSITORY_ROOT, "releases", "hermes-review-extension-v1.0.1.zip");
 
 const scratch = await mkdtemp(path.join(os.tmpdir(), "hermes-review-packaging-"));
 process.on("exit", () => {
@@ -123,11 +123,11 @@ const memberMap = JSON.parse(mapRun.output);
 const declaredMembers = memberMap.members;
 
 // ---------------------------------------------------------------------------
-// PKG1: the committed 1.0.0 artifact verifies against its NAMED sources
+// PKG1: the committed 1.0.1 artifact verifies against its NAMED sources
 // ---------------------------------------------------------------------------
 gate("PKG1", () => {
   const { status, output } = verify(ARTIFACT);
-  assert.equal(status, 0, `the committed 1.0.0 artifact must verify clean:\n${output}`);
+  assert.equal(status, 0, `the committed 1.0.1 artifact must verify clean:\n${output}`);
   assert.match(output, /PACKAGE VERIFY CLEAN — 9\/9 members byte-identical to their named sources/);
   assert.match(output, /README\.md <- hermes-review-extension\/README\.md .*byte-identical to its named source/);
   // The colliding name is asserted, not ignored: the repo root README differs and is named.
